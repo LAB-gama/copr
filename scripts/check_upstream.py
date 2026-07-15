@@ -30,6 +30,7 @@ class PackageCheck:
     spec: pathlib.Path
     upstream_url: str | None = None
     npm_package: str | None = None
+    node_release: str | None = None
     tag_prefix: str = "v"
     tag_version_pattern: str = r"(\d+\.\d+\.\d+)"
     version_source: str = "tag"
@@ -191,9 +192,40 @@ async def latest_npm_version(package_name: str) -> str:
         raise RuntimeError(f"could not determine latest npm dist-tag for {package_name}") from exc
 
 
+def fetch_node_dist_index(*, timeout: int = DEFAULT_HTTP_TIMEOUT) -> list[dict]:
+    request = urllib.request.Request(
+        "https://nodejs.org/dist/index.json",
+        headers={"User-Agent": "sureclaw-copr-check-upstream/1.0"},
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        releases = json.load(response)
+    if not isinstance(releases, list):
+        raise RuntimeError("Node.js distribution index did not contain a release list")
+    return releases
+
+
+async def latest_node_release_version(channel: str) -> str:
+    releases = await asyncio.to_thread(fetch_node_dist_index)
+    stable_versions = []
+    for release in releases:
+        version = release.get("version", "")
+        match = re.fullmatch(r"v(\d+\.\d+\.\d+)", version)
+        files = release.get("files", [])
+        matches_channel = channel == "current" or (channel == "lts" and bool(release.get("lts")))
+        if match and matches_channel and "linux-x64" in files and "linux-arm64" in files:
+            stable_versions.append(match.group(1))
+    if not stable_versions:
+        raise RuntimeError(
+            f"could not find a stable Node.js {channel} release with x64 and arm64 binaries"
+        )
+    return max(stable_versions, key=version_key)
+
+
 async def latest_version_for_package(package: PackageCheck) -> str:
     if package.npm_package:
         return await latest_npm_version(package.npm_package)
+    if package.node_release:
+        return await latest_node_release_version(package.node_release)
     if package.upstream_url:
         return await latest_upstream_version(
             package.upstream_url,
@@ -276,14 +308,20 @@ def load_packages(packages_json: pathlib.Path) -> list[PackageCheck]:
             spec=spec_path,
             upstream_url=item.get("upstream_url"),
             npm_package=item.get("npm_package"),
+            node_release=item.get("node_release"),
             tag_prefix=item.get("tag_prefix", "v"),
             tag_version_pattern=item.get("tag_version_pattern", r"(\d+\.\d+\.\d+)"),
             version_source=item.get("version_source", "tag"),
         )
-        sources = [package.upstream_url, package.npm_package]
+        sources = [package.upstream_url, package.npm_package, package.node_release]
         if sum(source is not None for source in sources) != 1:
             raise RuntimeError(
                 f"package {package.name} must define exactly one upstream source",
+            )
+        if package.node_release not in (None, "current", "lts"):
+            raise RuntimeError(
+                f"package {package.name} has unsupported Node.js release channel "
+                f"{package.node_release!r}",
             )
         packages.append(package)
     return packages
@@ -295,6 +333,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--packages-json", type=pathlib.Path)
     parser.add_argument("--upstream-url")
     parser.add_argument("--npm-package")
+    parser.add_argument("--node-release", choices=("current", "lts"))
     parser.add_argument("--tag-prefix", default="v")
     parser.add_argument("--tag-version-pattern", default=r"(\d+\.\d+\.\d+)")
     parser.add_argument(
@@ -311,13 +350,14 @@ def parse_args() -> argparse.Namespace:
         parser.error("provide exactly one of --spec or --packages-json")
 
     if args.spec:
-        sources = [args.upstream_url, args.npm_package]
+        sources = [args.upstream_url, args.npm_package, args.node_release]
         if sum(source is not None for source in sources) != 1:
             parser.error("provide exactly one upstream source")
     else:
         disallowed = [
             args.upstream_url,
             args.npm_package,
+            args.node_release,
             args.tag_prefix != "v",
             args.tag_version_pattern != r"(\d+\.\d+\.\d+)",
             args.version_source != "tag",
@@ -380,6 +420,7 @@ def main() -> int:
                 spec=args.spec,
                 upstream_url=args.upstream_url,
                 npm_package=args.npm_package,
+                node_release=args.node_release,
                 tag_prefix=args.tag_prefix,
                 tag_version_pattern=args.tag_version_pattern,
                 version_source=args.version_source,

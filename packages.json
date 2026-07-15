@@ -80,6 +80,24 @@
       "spec": "composio.spec",
       "upstream_url": "https://github.com/ComposioHQ/composio.git",
       "tag_prefix": "@composio/cli@"
+    },
+    {
+      "chroot_arches": ["aarch64", "x86_64"],
+      "name": "nodejs-latest",
+      "project": "nodejs-latest",
+      "subdir": "packages/nodejs-latest",
+      "spec": "nodejs-latest.spec",
+      "node_release": "current",
+      "exclude_distros": ["opensuse-leap"]
+    },
+    {
+      "chroot_arches": ["aarch64", "x86_64"],
+      "name": "nodejs-lts",
+      "project": "nodejs-lts",
+      "subdir": "packages/nodejs-lts",
+      "spec": "nodejs-lts.spec",
+      "node_release": "lts",
+      "exclude_distros": ["opensuse-leap"]
     }
   ]
 }
