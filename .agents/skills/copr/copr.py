@@ -42,7 +42,7 @@ def projects() -> list[tuple[str, str]]:
             return [(p["name"], p["project"]) for p in data["packages"]]
     # Fallback if run outside the repo.
     names = ["gogcli", "wacli", "codex", "opencode", "ollama",
-             "claude-code", "nodejs25-caged"]
+             "claude-code"]
     return [(n, n) for n in names]
 
 

@@ -17,7 +17,7 @@ and the log files
 served — **no token, no login, nothing for the user to paste.** Just curl them.
 
 The packages (project names): `gogcli`, `wacli`, `codex`, `opencode`, `ollama`,
-`claude-code`, `nodejs25-caged`, plus the umbrella meta-project `ai`. The
+`claude-code`, plus the umbrella meta-project `ai`. The
 authoritative list is `packages.json` at the repo root (`.packages[].project`).
 
 `copr-cli` is installed but **unconfigured and unnecessary** for reading — it's

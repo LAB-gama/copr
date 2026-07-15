@@ -30,7 +30,6 @@ class PackageCheck:
     spec: pathlib.Path
     upstream_url: str | None = None
     npm_package: str | None = None
-    node_major: int | None = None
     tag_prefix: str = "v"
     tag_version_pattern: str = r"(\d+\.\d+\.\d+)"
     version_source: str = "tag"
@@ -192,33 +191,9 @@ async def latest_npm_version(package_name: str) -> str:
         raise RuntimeError(f"could not determine latest npm dist-tag for {package_name}") from exc
 
 
-def fetch_node_dist_index(*, timeout: int = DEFAULT_HTTP_TIMEOUT) -> list[dict]:
-    request = urllib.request.Request(
-        "https://nodejs.org/dist/index.json",
-        headers={"User-Agent": "gogcli-copr-check-upstream/1.0"},
-    )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.load(response)
-
-
-async def latest_node_dist_version(node_major: int) -> str:
-    releases = await asyncio.to_thread(fetch_node_dist_index)
-    prefix = f"v{node_major}."
-    versions = [
-        release["version"].removeprefix("v")
-        for release in releases
-        if release.get("version", "").startswith(prefix)
-    ]
-    if not versions:
-        raise RuntimeError(f"could not find any Node.js v{node_major}.x releases")
-    return max(versions, key=version_key)
-
-
 async def latest_version_for_package(package: PackageCheck) -> str:
     if package.npm_package:
         return await latest_npm_version(package.npm_package)
-    if package.node_major:
-        return await latest_node_dist_version(package.node_major)
     if package.upstream_url:
         return await latest_upstream_version(
             package.upstream_url,
@@ -301,12 +276,11 @@ def load_packages(packages_json: pathlib.Path) -> list[PackageCheck]:
             spec=spec_path,
             upstream_url=item.get("upstream_url"),
             npm_package=item.get("npm_package"),
-            node_major=item.get("node_major"),
             tag_prefix=item.get("tag_prefix", "v"),
             tag_version_pattern=item.get("tag_version_pattern", r"(\d+\.\d+\.\d+)"),
             version_source=item.get("version_source", "tag"),
         )
-        sources = [package.upstream_url, package.npm_package, package.node_major]
+        sources = [package.upstream_url, package.npm_package]
         if sum(source is not None for source in sources) != 1:
             raise RuntimeError(
                 f"package {package.name} must define exactly one upstream source",
@@ -321,7 +295,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--packages-json", type=pathlib.Path)
     parser.add_argument("--upstream-url")
     parser.add_argument("--npm-package")
-    parser.add_argument("--node-major", type=int)
     parser.add_argument("--tag-prefix", default="v")
     parser.add_argument("--tag-version-pattern", default=r"(\d+\.\d+\.\d+)")
     parser.add_argument(
@@ -338,14 +311,13 @@ def parse_args() -> argparse.Namespace:
         parser.error("provide exactly one of --spec or --packages-json")
 
     if args.spec:
-        sources = [args.upstream_url, args.npm_package, args.node_major]
+        sources = [args.upstream_url, args.npm_package]
         if sum(source is not None for source in sources) != 1:
             parser.error("provide exactly one upstream source")
     else:
         disallowed = [
             args.upstream_url,
             args.npm_package,
-            args.node_major,
             args.tag_prefix != "v",
             args.tag_version_pattern != r"(\d+\.\d+\.\d+)",
             args.version_source != "tag",
@@ -408,7 +380,6 @@ def main() -> int:
                 spec=args.spec,
                 upstream_url=args.upstream_url,
                 npm_package=args.npm_package,
-                node_major=args.node_major,
                 tag_prefix=args.tag_prefix,
                 tag_version_pattern=args.tag_version_pattern,
                 version_source=args.version_source,
