@@ -5,7 +5,7 @@
 %global __os_install_post %{nil}
 
 Name:           nodejs-latest
-Version:        26.6.0
+Version:        26.7.0
 Release:        1%{?dist}
 Summary:        Latest stable Node.js release from the official binary distribution
 
@@ -87,6 +87,9 @@ PATH="%{buildroot}%{_bindir}:$PATH" \
 %{_mandir}/man1/node.1*
 
 %changelog
+* Thu Aug 06 2026 Codex Automation <noreply@users.noreply.github.com> - 26.7.0-1
+- Update to v26.7.0
+
 * Tue Aug 04 2026 Codex Automation <noreply@users.noreply.github.com> - 26.6.0-1
 - Update to v26.6.0
 
