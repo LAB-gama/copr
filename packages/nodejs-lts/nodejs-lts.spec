@@ -5,7 +5,7 @@
 %global __os_install_post %{nil}
 
 Name:           nodejs-lts
-Version:        24.19.0
+Version:        24.20.0
 Release:        1%{?dist}
 Summary:        Latest LTS Node.js release from the official binary distribution
 
@@ -87,6 +87,9 @@ PATH="%{buildroot}%{_bindir}:$PATH" \
 %{_mandir}/man1/node.1*
 
 %changelog
+* Fri Aug 28 2026 Codex Automation <noreply@users.noreply.github.com> - 24.20.0-1
+- Update to v24.20.0
+
 * Tue Aug 04 2026 Codex Automation <noreply@users.noreply.github.com> - 24.19.0-1
 - Update to v24.19.0
 
