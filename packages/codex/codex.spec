@@ -3,6 +3,8 @@
 Name:           codex
 Version:        0.152.0
 Release:        2%{?dist}
+Version:        0.152.1
+Release:        1%{?dist}
 Summary:        Coding agent that runs locally in your terminal
 
 License:        Apache-2.0
@@ -49,6 +51,8 @@ install -Dpm0755 bin/codex-code-mode-host %{buildroot}%{_bindir}/codex-code-mode
 - Switch to the upstream codex-package release archives and ship
   codex-code-mode-host next to codex; without it code mode fails with
   "failed to spawn code-mode host" (openai/codex#31906)
+* Wed Sep 02 2026 Codex Automation <noreply@users.noreply.github.com> - 0.152.1-1
+- Update to v0.152.1
 
 * Tue Sep 01 2026 Codex Automation <noreply@users.noreply.github.com> - 0.152.0-1
 - Update to v0.152.0
